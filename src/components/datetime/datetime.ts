@@ -12,6 +12,7 @@ import { assert, clamp, deepCopy, isArray, isBlank, isObject, isPresent, isStrin
 import {
   DateTimeData,
   LocaleData,
+  compareDates,
   convertDataToISO,
   convertFormatToKey,
   dateDataSortValue,
@@ -322,6 +323,14 @@ export class DateTime extends BaseInput<DateTimeData> implements AfterContentIni
   @Input() displayFormat: string;
 
   /**
+   * @input {string} The default datetime selected in picker modal if field value is empty.
+   * Value must be a date string following the
+   * [ISO 8601 datetime format standard](https://www.w3.org/TR/NOTE-datetime),
+   * `1996-12-19`.
+   */
+  @Input() initialValue: string;
+
+  /**
    * @input {string} The format of the date and time picker columns the user selects.
    * A datetime input can have one or many datetime parts, each getting their
    * own column which allow individual selection of that particular datetime part. For
@@ -510,6 +519,7 @@ export class DateTime extends BaseInput<DateTimeData> implements AfterContentIni
     if (this.isFocus() || this._disabled) {
       return;
     }
+
     console.debug('datetime, open picker');
 
     // the user may have assigned some options specifically for the alert
@@ -598,7 +608,7 @@ export class DateTime extends BaseInput<DateTimeData> implements AfterContentIni
 
         // cool, we've loaded up the columns with options
         // preselect the option for this column
-        const optValue = getValueFromFormat(this.getValue(), format);
+        const optValue = getValueFromFormat(this.getValueOrDefault(), format);
         const selectedIndex = column.options.findIndex(opt => opt.value === optValue);
         if (selectedIndex >= 0) {
           // set the select index for this column's options
@@ -777,6 +787,51 @@ export class DateTime extends BaseInput<DateTimeData> implements AfterContentIni
   /**
    * @hidden
    */
+  getValueOrDefault(): DateTimeData {
+    if (this.hasValue()) {
+      return this._value;
+    }
+
+    const initialDateString = this.getDefaultValueDateString();
+    const _default = {};
+    updateDate(_default, initialDateString);
+    return _default;
+  }
+
+  /**
+   * Get the default value as a date string
+   * @hidden
+   */
+  getDefaultValueDateString() {
+    if (this.initialValue) {
+      return this.initialValue;
+    }
+
+    const nowString = (new Date).toISOString();
+    if (this.max) {
+      const now = parseDate(nowString);
+      const max = parseDate(this.max);
+
+      let v;
+      for (let i in max) {
+        v = (<any>max)[i];
+        if (v === null) {
+          (<any>max)[i] = (<any>now)[i];
+        }
+      }
+
+      const diff = compareDates(now, max);
+      // If max is before current time, return max
+      if (diff > 0) {
+        return this.max;
+      }
+    }
+    return nowString;
+  }
+
+  /**
+   * @hidden
+   */
   hasValue(): boolean {
     const val = this._value;
     return isPresent(val)
@@ -837,7 +892,6 @@ export class DateTime extends BaseInput<DateTimeData> implements AfterContentIni
       }
     }
   }
-
 }
 
 /**
