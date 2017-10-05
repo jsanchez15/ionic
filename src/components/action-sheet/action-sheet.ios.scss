@@ -91,6 +91,7 @@ $action-sheet-ios-button-cancel-font-weight:            600 !default;
 
 .action-sheet-ios .action-sheet-wrapper {
   @include margin(auto, auto, constant(safe-area-inset-bottom), auto);
+  @include margin(auto, auto, env(safe-area-inset-bottom), auto);
 }
 
 .action-sheet-ios .action-sheet-container {
